@@ -1,0 +1,98 @@
+globals [
+  average-susceptible
+  average-exposed
+  average-infected
+  average-recovering
+]
+
+; In this simulation the color attributes mean: grey is susceptible; pink exposed; red infected and green recovering
+turtles-own [
+  state ; define the atual state. Can be "susceptible", "exposed", "infected", or "recovering"
+]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Next we have the procedure setup. This is executed when one presses the "setup" button
+
+to setup
+  clear-all ;this clears everything at the start - a clean slate
+  create-turtles population [
+    set shape "person"
+    set size 2
+    set color grey
+    ;;    sets position of nodes randomly
+    setxy random-xcor random-ycor
+    set state "susceptible"
+  ]
+  set average-susceptible 0
+  set average-exposed 0
+  set average-infected 0
+  set average-recovering 0
+
+  ;; links up network
+  ask turtles [
+    ;; each node links to a random selection of other nodes
+    create-links-with n-of number-links-each other turtles
+  ]
+;;; repeat 100 [ layout-spring turtles links 0.2 5 number-links-each]
+  reset-ticks    ; This initialises the simulation time system and graphs
+end
+
+to infect-one-new
+  ask one-of turtles [set color red
+  set state "infected"]
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Next we have the procedure to progress the simulation one time step
+;; this is executed when one presses the 'step" button or repeatedly
+;; if one presses the "go" button
+
+to go
+  ;; things that happen to susceptible
+  ask turtles with [state = "susceptible"] [
+    if any? link-neighbors with [state = "infected" and color = red] [
+      if with-probability prob-expose [
+        set state "exposed"
+        set color yellow
+      ]
+    ]
+  ]
+
+  ;; things that happen to exposed
+  ask turtles with [state = "exposed"] [
+    if with-probability prob-infect [
+      set state "infected"
+      set color red
+    ]
+  ]
+
+  ;; things that happen to infected
+  ask turtles with [state = "infected"] [
+    if with-probability prob-recover [
+      set state "recovering"
+      set color green
+    ]
+  ]
+
+  ;; things that happen to recovering
+  ask turtles with [state = "recovering"] [
+    if with-probability prob-susceptible [
+      set state "susceptible"
+      set color grey
+    ]
+  ]
+  set average-susceptible mean [ifelse-value (state = "susceptible") [1] [0]] of turtles
+  set average-exposed mean [ifelse-value (state = "exposed") [1] [0]] of turtles
+  set average-infected mean [ifelse-value (state = "infected") [1] [0]] of turtles
+  set average-recovering mean [ifelse-value (state = "recovering") [1] [0]] of turtles
+
+  tick      ;; this progresses the tick counter by one
+
+end
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to-report with-probability [prob]
+  ;; returns value "TRUE" with probability determined by input
+  report random-float 1 < prob
+end
